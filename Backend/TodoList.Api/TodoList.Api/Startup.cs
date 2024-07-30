@@ -3,8 +3,14 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using TodoList.Api.Data;
+using TodoList.Api.Dtos;
+using TodoList.Api.Exceptions;
+using TodoList.Api.Repositories;
+using TodoList.Api.Services;
 
 namespace TodoList.Api
 {
@@ -37,7 +43,15 @@ namespace TodoList.Api
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "TodoList.Api", Version = "v1" });
             });
 
+            services.AddAutoMapper(cfg =>
+            {
+                cfg.CreateMap<TodoItem, TodoDto>().ReverseMap();
+            });
+            services.AddExceptionHandler<GlobalExceptionHandler>();
+            services.AddProblemDetails();
             services.AddDbContext<TodoContext>(opt => opt.UseInMemoryDatabase("TodoItemsDB"));
+            services.AddScoped<ITodoRepo, TodoRepo>();
+            services.AddScoped<ITodoService, TodoService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -49,7 +63,6 @@ namespace TodoList.Api
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TodoList.Api v1"));
             }
-
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -57,7 +70,7 @@ namespace TodoList.Api
             app.UseCors("AllowAllHeaders");
 
             app.UseAuthorization();
-
+            app.UseExceptionHandler();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
